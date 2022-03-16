@@ -13,6 +13,7 @@ class Parser
         $this->generator = $generator;
     }
 
+    # Main parsing function
     public function parse()
     {
         $tokenStrings = $this->scanner->getTokenStrings();
@@ -33,7 +34,8 @@ class Parser
         } while (true);
     }
 
-    public function parseTokenStrings($tokenStrings)
+    # Parse tokens of one instruction
+    private function parseTokenStrings($tokenStrings)
     {
         global $instructionParams;
         $opcode = strtoupper($tokenStrings[0]);
@@ -81,6 +83,7 @@ class Parser
         return $instruction;
     }
 
+    # Parse an argument representing a variable
     private function parseVariableString(string $variableString)
     {
         if (!str_contains($variableString, '@')) {
@@ -100,6 +103,7 @@ class Parser
         return new Argument("var", $variableString);
     }
 
+    # Parse an argument representing a symbol (Varialble or Constant)
     private function parseSymbolString(string $symbolString)
     {
         if (!str_contains($symbolString, '@')) {
@@ -120,17 +124,18 @@ class Parser
             _Error::exit(_Error::LEX_OR_SYNTAX_ERROR, "Invalid bool value.");
         }
 
-        if ($type == "int" && !is_numeric($value)) {
+        if ($type == "int" && !$this->isValidNumber($value)) {
             _Error::exit(_Error::LEX_OR_SYNTAX_ERROR, "Invalid int value.");
         }
 
-        if ($type == "string" && str_contains($value, "\\") && preg_match("/\\\\\d{3}/", $value) == 0) {
+        if ($type == "string" && substr_count($value, "\\") != preg_match_all("/\\\\\d{3}/", $value)) {
             _Error::exit(_Error::LEX_OR_SYNTAX_ERROR, "Invalid string value.");
         }
 
         return new Argument($type, $value);
     }
 
+    # Parse an argument representing a Label
     private function parseLabelString(string $labelString)
     {
         if (!$this->isValidIdentifier($labelString)) {
@@ -140,6 +145,7 @@ class Parser
         return new Argument("label", $labelString);
     }
 
+    # Parse an argument representing a Type
     private function parseTypeString(string $typeString)
     {
         if (!$this->isValidType($typeString)) {
@@ -149,6 +155,7 @@ class Parser
         return new Argument("type", $typeString);
     }
 
+    # Validate Type string
     private function isValidType(string $typeString, bool $includeNil = false)
     {
         $types = ["int", "string", "bool"];
@@ -160,13 +167,21 @@ class Parser
         return in_array($typeString, $types);
     }
 
+    # Validate Frame string
     private function isValidFrame(string $frameString)
     {
         return in_array($frameString, array("LF", "TF", "GF"));
     }
 
+    # Validate an identifier
     private function isValidIdentifier(string $identifier)
     {
-        return preg_match("/^[a-zA-Z0-9_\-$&%*!?]+$/", $identifier);
+        return preg_match("/^[a-z_\-$&%*!?]+[0-9a-z_\-$&%*!?]*$/i", $identifier);
+    }
+
+    # Validate a numeric string
+    private function isValidNumber(string $numberString)
+    {
+        return preg_match("/^[\-\+]?\d+(?:\.\d+)?(?:e[\-\+]?\d+(?:\.\d+)?)?$|^0x[0-9a-f]+$|^0[0-7]+$/i", $numberString, $matches);
     }
 }
